@@ -5,6 +5,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.net.ConnectivityManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -27,8 +28,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import com.example.juiceboxbot.y3840030mobileandroid.Function;
-
 
 /**
  * Created by juiceboxbot on 15/11/2019.
@@ -38,9 +37,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private SensorManager s_mgr;
     private Sensor s;
-    public String NEWS_SOURCE;
+    public String GPS_LOCATION;
     public String API_KEY = "820dc531-f4bc-4ae6-8a66-e1e8013b47d0";
-    public  Function func;
 
     ArrayList<HashMap<String, String>> dataList = new ArrayList<>();
     static final String KEY_AUTHOR = "author";
@@ -49,6 +47,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     static final String KEY_URL = "url";
     static final String KEY_URLTOIMAGE = "urlToImage";
     static final String KEY_PUBLISHEDAT = "publishedAt";
+
+//  check this code online when internet access is possible.
+//
 
 
 
@@ -61,7 +62,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         s_mgr.registerListener(this, s, SensorManager.SENSOR_DELAY_NORMAL);
 
 
-        if (func.isNetworkAvailable(getApplicationContext())) {
+        if (isNetworkAvailable(getApplicationContext())) {
             downloadNews newsTask = new downloadNews();
             newsTask.execute();
         } else {
@@ -69,26 +70,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
+    public static boolean isNetworkAvailable(Context context) {
+        return true; //((ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE)).getActiveNetworkInfo() != null;
+    }
 
-    public String doInBackground(View v) {
-        //new getNewsFacts().execute("820dc531-f4bc-4ae6-8a66-e1e8013b47d0");
-
-        //URL url = new URL("http://eventregistry.org/api/v1/event/getEvents/");
-        //HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+    public void getNews(View v) {
 //https://newsapi.org/v2/top-headlines?country=us&apiKey=034c261d12784990b41d4ef4f235ed1d
-        new downloadNews().execute("https://newsapi.org/v2/top-headlines?" +
-                                    "country=uk&" +
-                                    "apiKey=034c261d12784990b41d4ef4f235ed1d");
+       // new downloadNews().execute("https://newsapi.org/v2/top-headlines?" +
+         //                           "country=uk&" +
+           //                         "apiKey=034c261d12784990b41d4ef4f235ed1d");
 
-        String xml = func.excuteGet("https://newsapi.org/v2/articles?source=" + NEWS_SOURCE + "&sourtBy=top&apiKey=" + API_KEY);
-        return xml;
+        new downloadNews().execute("https://newsapi.org/v2/articles?source=" + GPS_LOCATION + "&sortBy=top&apiKey=" + API_KEY);
 
         //new downloadNews().execute("https://newsapi.org/v2/top-headlines?country=us&apiKey=034c261d12784990b41d4ef4f235ed1d");
-        //sourceLocationUri  array[string]
-
-        //Conncct api from web to local.
-        //
-        //
     }
 
     public void setNews(String new_news) {
@@ -121,8 +115,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         else{
             findViewById(R.id.imageView).setVisibility(View.INVISIBLE);
         }
-
-
     }
 
     @Override
@@ -155,11 +147,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private class downloadNews extends AsyncTask<String, Void, String> {
 
         @Override
-        protected String doInBackground(String... urls) {
+        protected String doInBackground(String... TargetUrls) {
             URL url;
 
             try {
-                url = new URL(urls[0]);
+                url = new URL(TargetUrls[0]);
             }
             catch (MalformedURLException e) {
                 return "";
@@ -172,10 +164,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 connection.connect();
                 BufferedReader bf = new BufferedReader(new InputStreamReader(connection.getInputStream()));
                 String line;
+                StringBuffer resp = new StringBuffer();
 
                 while ((line = bf.readLine()) != null)
                 {
-                    sb.append(line + "\n");
+                    resp.append(line);
+                    resp.append("\r");
                 }
                 bf.close();
                 connection.getInputStream().close();
@@ -194,8 +188,19 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
 
             try {
-                JSONObject jsonResponse = new JSONObject(result);
-                JSONArray jsonArray = jsonResponse.optJSONArray("articles");
+                JSONObject json = new JSONObject(result);
+                JSONArray jsonArray = json.optJSONArray("articles");
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    JSONObject jsonObject = jsonArray.getJSONObject(i);
+                    HashMap<String, String> map = new HashMap<>();
+                    map.put(KEY_AUTHOR, jsonObject.optString(KEY_AUTHOR));
+                    map.put(KEY_TITLE, jsonObject.optString(KEY_TITLE));
+                    map.put(KEY_DESCRIPTION, jsonObject.optString(KEY_DESCRIPTION));
+                    map.put(KEY_URL, jsonObject.optString(KEY_URL));
+                    map.put(KEY_URLTOIMAGE, jsonObject.optString(KEY_URLTOIMAGE));
+                    map.put(KEY_PUBLISHEDAT, jsonObject.optString(KEY_PUBLISHEDAT));
+                    dataList.add(map);
+                }
             }
             catch(JSONException e) {
                 Toast.makeText(getApplicationContext(), "Unexpected error", Toast.LENGTH_SHORT).show();

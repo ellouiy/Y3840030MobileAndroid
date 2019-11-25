@@ -14,9 +14,8 @@ import java.net.URL;
 public class Function {
 
     public static boolean isNetworkAvailable(Context context) {
-        return ((ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE)).getActiveNetworkInfo() != null;
+        return true;//((ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE)).getActiveNetworkInfo() != null;
     }
-
 
     public static String excuteGet(String targetURL) {
         URL url;
@@ -25,7 +24,7 @@ public class Function {
             url = new URL(targetURL);
             connection = (HttpURLConnection) url.openConnection();
             connection.setRequestProperty("content-type", "application/json;  charset=utf-8");
-            connection.setRequestProperty("Content-Language", "en-US");
+            connection.setRequestProperty("Content-Language", "en-UK");
             connection.setUseCaches(false);
             connection.setDoInput(true);
             connection.setDoOutput(false);
